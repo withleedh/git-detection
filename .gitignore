@@ -1,0 +1,88 @@
+# Vehicle Scratch Detection - Git Ignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# PyTorch
+*.pt
+*.pth
+*.onnx
+*.pkl
+
+# Datasets (DO NOT commit large datasets)
+datasets/
+raw_data/
+/Users/dongho/Downloads/160._차량파손_이미지_데이터/
+
+# Experiments & Training Results
+experiments/
+runs/
+wandb/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Model checkpoints (keep only best.pt manually)
+last.pt
+last*.pt
+
+# TensorBoard
+events.out.tfevents.*
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment variables
+.env
+.env.local

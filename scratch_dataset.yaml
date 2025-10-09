@@ -1,0 +1,23 @@
+# YOLOv8/v11 Dataset Configuration
+# Vehicle Scratch Detection Dataset
+
+# Dataset root path (relative to this file)
+path: ./datasets/scratch
+
+# Train and validation image directories (relative to path)
+train: images/train
+val: images/val
+
+# Class names
+names:
+  0: scratch
+
+# Number of classes
+nc: 1
+
+# Dataset info
+info:
+  description: "Vehicle scratch detection dataset for insurance damage assessment"
+  version: "1.0"
+  target_damage: "Breakage"
+  expected_map: ">0.80"

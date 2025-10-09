@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/dongho/Downloads/160._차량파손_이미지_데이터/**)",
+      "Bash(while read file)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(cat:*)",
+      "Bash(python3:*)",
+      "Bash(done)",
+      "Read(//Users/dongho/Downloads/**)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(python3.10:*)",
+      "Bash(curl:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

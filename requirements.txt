@@ -1,0 +1,28 @@
+# Vehicle Scratch Detection - Python Dependencies
+
+# Core ML Framework
+ultralytics>=8.0.0          # YOLOv8/v11 object detection
+torch>=2.0.0                # PyTorch deep learning framework
+torchvision>=0.15.0         # PyTorch vision library
+
+# Computer Vision
+opencv-python>=4.8.0        # OpenCV for image processing
+Pillow>=10.0.0              # Image file handling
+
+# API Server
+Flask>=3.0.0                # Web framework for REST API
+Flask-CORS>=4.0.0           # CORS support for API
+
+# Data Processing
+numpy>=1.24.0               # Numerical computing
+pandas>=2.0.0               # Data analysis (optional, for reports)
+
+# Utilities
+tqdm>=4.65.0                # Progress bars
+PyYAML>=6.0                 # YAML configuration parsing
+matplotlib>=3.7.0           # Plotting and visualization
+seaborn>=0.12.0             # Statistical visualization
+
+# Optional: Performance monitoring
+# psutil>=5.9.0             # System monitoring
+# py-cpuinfo>=9.0.0         # CPU information

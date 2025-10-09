@@ -1,0 +1,27 @@
+# YOLOv8/v11 Multi-class Dataset Configuration
+# Vehicle Damage Detection (All Types)
+
+# Dataset root path (relative to this file)
+path: ./datasets/damage_multiclass
+
+# Train and validation image directories (relative to path)
+train: images/train
+val: images/val
+
+# Class names (4 damage types)
+names:
+  0: Breakage
+  1: Crushed
+  2: Separated
+  3: Scratched
+
+# Number of classes
+nc: 4
+
+# Dataset info
+info:
+  description: "Multi-class vehicle damage detection for insurance assessment"
+  version: "2.0"
+  damage_types: ["Breakage", "Crushed", "Separated", "Scratched"]
+  expected_avg_map: ">0.65"
+  strategy: "Multi-class detection for comprehensive damage assessment"
