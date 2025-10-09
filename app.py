@@ -12,6 +12,7 @@ import tempfile
 import os
 from typing import Dict, List
 import time
+from PIL import ImageFont, ImageDraw, Image
 
 
 app = Flask(__name__)
@@ -19,7 +20,7 @@ app = Flask(__name__)
 # Global model instance (loaded once at startup)
 model = None
 MODEL_PATH = "best.pt"
-CONFIDENCE_THRESHOLD = 0.25  # Minimum confidence for detections
+CONFIDENCE_THRESHOLD = 0.2
 
 
 def load_model():
@@ -44,17 +45,27 @@ def load_model():
     print("="*60 + "\n")
 
 
-def process_detection_results(results) -> Dict:
+def process_detection_results(results, use_korean=True) -> Dict:
     """
     Process YOLO detection results into JSON format
 
     Args:
         results: YOLO detection results
+        use_korean: Return Korean class names (default: True)
 
     Returns:
         Dictionary with detection data
     """
     detections = []
+
+    # Korean translation map (올바른 매핑)
+    korean_names = {
+        "Breakage": "파손",        # 0: 파손
+        "Crushed": "찌그러짐",      # 1: 찌그러짐
+        "Separated": "이격",        # 2: 이격
+        "Scratched": "스크래치",    # 3: 스크래치
+        "scratch": "스크래치"
+    }
 
     # Extract results from first image
     result = results[0]
@@ -68,9 +79,12 @@ def process_detection_results(results) -> Dict:
     for i, (box, conf, cls_id) in enumerate(zip(boxes, confidences, class_ids)):
         x1, y1, x2, y2 = box
 
+        english_name = model.names[int(cls_id)]
+        class_name = korean_names.get(english_name, english_name) if use_korean else english_name
+
         detection = {
             "detection_id": i,
-            "class": "scratch",
+            "class": class_name,
             "class_id": int(cls_id),
             "confidence": float(conf),
             "bbox": {
@@ -110,12 +124,21 @@ def draw_detections(image, results, transparency=0.3):
     confidences = result.boxes.conf.cpu().numpy()
     class_ids = result.boxes.cls.cpu().numpy()
 
-    # Define colors (BGR format for OpenCV)
+    # Korean translation map (올바른 매핑)
+    korean_names = {
+        "Breakage": "파손",        # 0: 파손
+        "Crushed": "찌그러짐",      # 1: 찌그러짐
+        "Separated": "이격",        # 2: 이격
+        "Scratched": "스크래치",    # 3: 스크래치
+        "scratch": "스크래치"       # For single-class model
+    }
+
+    # Define colors (BGR format for OpenCV) - 진한 색상
     colors = {
-        0: (0, 0, 255),      # Red for scratch
-        1: (0, 255, 255),    # Yellow for crushed
-        2: (255, 0, 255),    # Magenta for separated
-        3: (255, 165, 0)     # Orange for breakage
+        0: (0, 0, 255),      # Red (빨강) for 파손
+        1: (0, 200, 255),    # Orange (주황) for 찌그러짐 - 더 진하게
+        2: (255, 0, 255),    # Magenta (마젠타) for 이격
+        3: (255, 100, 0)     # Blue (파랑) for 스크래치 - 더 진하게
     }
 
     # Draw each detection
@@ -130,30 +153,66 @@ def draw_detections(image, results, transparency=0.3):
         # Draw border rectangle on annotated
         cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 3)
 
-        # Add label with confidence
-        label = f"{model.names[cls_id]}: {conf:.2%}"
-        label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-        label_w, label_h = label_size
+        # Add label with confidence (Korean)
+        english_name = model.names[cls_id]
+        korean_name = korean_names.get(english_name, english_name)
+        label = f"{korean_name}: {conf:.2%}"
 
-        # Draw label background
-        cv2.rectangle(
-            annotated,
-            (x1, y1 - label_h - 10),
-            (x1 + label_w + 10, y1),
-            color,
-            -1
+        # Convert BGR to RGB for PIL
+        annotated_pil = Image.fromarray(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(annotated_pil)
+
+        # Try to load Korean font
+        font_loaded = False
+        font = None
+        for font_path in [
+            "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
+            "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+            "/Library/Fonts/Arial Unicode.ttf",
+        ]:
+            try:
+                font = ImageFont.truetype(font_path, 28)
+                font_loaded = True
+                break
+            except:
+                continue
+
+        if not font_loaded:
+            font = ImageFont.load_default()
+
+        # Get text size
+        bbox = draw.textbbox((0, 0), label, font=font)
+        label_w = bbox[2] - bbox[0]
+        label_h = bbox[3] - bbox[1]
+
+        # Draw label background (더 진한 색상)
+        bg_y1 = max(0, y1 - label_h - 10)
+        bg_color_bgr = tuple(max(0, int(c * 0.7)) for c in color)  # 70% 어둡게
+        draw.rectangle(
+            [(x1, bg_y1), (x1 + label_w + 10, y1)],
+            fill=bg_color_bgr[::-1]  # Convert BGR to RGB
         )
 
-        # Draw label text
-        cv2.putText(
-            annotated,
+        # Draw label text with outline for better visibility
+        text_pos = (x1 + 5, bg_y1 + 2)
+        # Draw outline (검은색 테두리)
+        for adj in [(-1,-1), (-1,1), (1,-1), (1,1)]:
+            draw.text(
+                (text_pos[0]+adj[0], text_pos[1]+adj[1]),
+                label,
+                font=font,
+                fill=(0, 0, 0)
+            )
+        # Draw main text (흰색)
+        draw.text(
+            text_pos,
             label,
-            (x1 + 5, y1 - 5),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (255, 255, 255),
-            2
+            font=font,
+            fill=(255, 255, 255)
         )
+
+        # Convert back to BGR for OpenCV
+        annotated = cv2.cvtColor(np.array(annotated_pil), cv2.COLOR_RGB2BGR)
 
     # Blend overlay with annotated image
     result_image = cv2.addWeighted(overlay, transparency, annotated, 1 - transparency, 0)

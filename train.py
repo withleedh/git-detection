@@ -186,10 +186,10 @@ def validate_model(weights_path: str = "experiments/scratch_detection_v1/weights
 if __name__ == "__main__":
     # Training configuration - Multi-class detection (Optimized for RTX 4090)
     CONFIG = {
-        "model_size": "yolo11m.pt",      # Medium model for multi-class
+        "model_size": "yolo11l.pt",      # Medium model for multi-class
         "epochs": 150,                    # Extended training
-        "img_size": 960,                  # Balanced size (960 < 1280, > 640)
-        "batch_size": 8,                  # Stable batch size
+        "img_size": 1280,                  # Balanced size (960 < 1280, > 640)
+        "batch_size": 64,                  # Stable batch size
         "project_name": "experiments",
         "run_name": "damage_multiclass_v1"
     }
