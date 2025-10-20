@@ -30,9 +30,11 @@ def train_scratch_detector(
     model_size: str = "yolo11s.pt",
     epochs: int = 100,
     img_size: int = 640,
-    batch_size: int = 16,
+    batch_size: int = 64,
     project_name: str = "experiments",
-    run_name: str = "scratch_detection_v1"
+    run_name: str = "scratch_detection_v1",
+    use_tune: bool = False,
+    iterations: int = 30
 ):
     """
     Train YOLOv11 model for scratch detection
@@ -63,70 +65,84 @@ def train_scratch_detector(
     model = YOLO(model_size)
     print("✓ Model loaded successfully\n")
 
-    # Start training
-    print("🏋️  Starting training...\n")
-
-    results = model.train(
-        # Dataset configuration
-        data="damage_multiclass.yaml",  # Multi-class dataset
-        # Training parameters
-        epochs=epochs,
-        imgsz=img_size,
-        batch=batch_size,
-
-        # Optimization
-        optimizer='AdamW',          # AdamW optimizer for better convergence
-        lr0=0.001,                  # Initial learning rate
-        lrf=0.01,                   # Final learning rate (lr0 * lrf)
-        momentum=0.937,             # SGD momentum/Adam beta1
-        weight_decay=0.0005,        # Optimizer weight decay
-        warmup_epochs=3.0,          # Warmup epochs
-        warmup_momentum=0.8,        # Warmup initial momentum
-
-        # Data augmentation
-        hsv_h=0.015,               # HSV-Hue augmentation
-        hsv_s=0.7,                 # HSV-Saturation augmentation
-        hsv_v=0.4,                 # HSV-Value augmentation
-        degrees=0.0,               # Rotation (+/- deg)
-        translate=0.1,             # Translation (+/- fraction)
-        scale=0.5,                 # Image scale (+/- gain)
-        shear=0.0,                 # Shear (+/- deg)
-        perspective=0.0,           # Perspective (+/- fraction)
-        flipud=0.0,                # Flip up-down probability
-        fliplr=0.5,                # Flip left-right probability
-        mosaic=1.0,                # Mosaic augmentation probability
-        mixup=0.0,                 # MixUp augmentation probability
-        copy_paste=0.0,            # Copy-paste augmentation probability
-
-        # Validation
-        val=True,                  # Validate during training
-
-        # Save options
-        save=True,                 # Save checkpoints
-        save_period=10,            # Save checkpoint every n epochs
-
-        # Output
-        project=project_name,
-        name=run_name,
-        exist_ok=False,            # Overwrite existing project/name
-
-        # # Performance
-        # device='mps',
-        # workers=8,                 # Number of worker threads
-
-        # Logging
-        verbose=True,              # Verbose output
-        plots=True,                # Save plots
-
-        # Advanced
-        amp=True,                  # Automatic Mixed Precision training
-        fraction=1.0,              # Train on fraction of data (1.0 = all data)
-        patience=50,               # Early stopping patience (epochs)
-
-        # Class weights (balanced for single class)
-        cls=0.5,                   # Classification loss weight
-        box=7.5,                   # Box loss weight
-        dfl=1.5,                   # DFL loss weight
+    # --- 훈련 또는 튜닝 시작 (이 부분이 변경됩니다) ---
+    if use_tune:
+        print(f"🧬 Starting hyperparameter tuning for {iterations} iterations...\n")
+        # model.tune() 호출
+        results = model.tune(
+            # --- 필수 파라미터 ---
+            data="damage_multiclass.yaml",
+            epochs=epochs,
+            iterations=iterations,
+            optimizer='AdamW',
+            
+            # --- 출력 및 검증 설정 ---
+            project=project_name,
+            name=run_name,
+            plots=False,  # 튜닝 중에는 속도를 위해 보통 비활성화
+            save=False,   # 공간 절약을 위해 보통 비활성화
+            val=True
+        )
+    else:
+        print("🏋️  Starting training...\n")
+        # 기존 model.train() 호출
+        results = model.train(
+            data="damage_multiclass.yaml",
+            epochs=epochs,
+            imgsz=img_size,
+            batch=batch_size,
+            optimizer='AdamW',
+            lr0=0.0005,
+            lrf=0.01,                   # Final learning rate (lr0 * lrf)
+            momentum=0.937,             # SGD momentum/Adam beta1
+            weight_decay=0.0005,        # Optimizer weight decay
+            warmup_epochs=3.0,          # Warmup epochs
+            warmup_momentum=0.8,        # Warmup initial momentum
+    
+            # Data augmentation
+            hsv_h=0.015,               # HSV-Hue augmentation
+            hsv_s=0.7,                 # HSV-Saturation augmentation
+            hsv_v=0.4,                 # HSV-Value augmentation
+            degrees=0.0,               # Rotation (+/- deg)
+            translate=0.1,             # Translation (+/- fraction)
+            scale=0.5,                 # Image scale (+/- gain)
+            shear=0.0,                 # Shear (+/- deg)
+            perspective=0.0,           # Perspective (+/- fraction)
+            flipud=0.0,                # Flip up-down probability
+            fliplr=0.5,                # Flip left-right probability
+            mosaic=1.0,                # Mosaic augmentation probability
+            mixup=0.0,                 # MixUp augmentation probability
+            copy_paste=0.0,            # Copy-paste augmentation probability
+    
+            # Validation
+            val=True,                  # Validate during training
+    
+            # Save options
+            save=True,                 # Save checkpoints
+            save_period=10,            # Save checkpoint every n epochs
+    
+            # Output
+            project=project_name,
+            name=run_name,
+            exist_ok=False,            # Overwrite existing project/name
+    
+            # # Performance
+            # device='mps',
+            # workers=8,                 # Number of worker threads
+    
+            # Logging
+            verbose=True,              # Verbose output
+            plots=True,                # Save plots
+    
+            # Advanced
+            amp=True,                  # Automatic Mixed Precision training
+            fraction=1.0,              # Train on fraction of data (1.0 = all data)
+            patience=50,               # Early stopping patience (epochs)
+    
+            # Class weights (balanced for single class)
+            cls=0.5,                   # Classification loss weight
+            box=7.5,                   # Box loss weight
+            dfl=1.5,                   # DFL loss weight
     )
 
     print("\n" + "="*60)
@@ -184,22 +200,48 @@ def validate_model(weights_path: str = "experiments/scratch_detection_v1/weights
 
 
 if __name__ == "__main__":
-    # Training configuration - Multi-class detection (Optimized for RTX 4090)
-    CONFIG = {
-        "model_size": "yolo11l.pt",      # Medium model for multi-class
-        "epochs": 150,                    # Extended training
-        "img_size": 1280,                  # Balanced size (960 < 1280, > 640)
-        "batch_size": 64,                  # Stable batch size
-        "project_name": "experiments",
-        "run_name": "damage_multiclass_v1"
-    }
 
+    TUNE_MODE = True
+
+    if TUNE_MODE:
+        # 하이퍼파라미터 튜닝 설정
+        CONFIG = {
+            "model_size": "yolo11s.pt",
+            "epochs": 30,
+            "img_size": 640,
+            "batch_size": 64,
+            "project_name": "experiments",
+            "run_name": "damage_multiclass_TUNE_v1",
+            # --- 튜닝 관련 설정 ---
+            "use_tune": True,
+            "iterations": 30  # 시도할 조합의 수 (시간이 오래 걸리면 줄여서 테스트)
+        }
+    else:
+        # 기존 일반 훈련 설정
+        CONFIG = {
+            "model_size": "yolo11l.pt",
+            "epochs": 30,
+            "img_size": 640,
+            "batch_size": 64,
+            "project_name": "experiments",
+            "run_name": "damage_multiclass_v1",
+            # --- 일반 훈련 관련 설정 ---
+            "use_tune": False,
+            "iterations": 0  # 사용 안 함
+        }
     # For quick testing (comment out for production run):
     # CONFIG["epochs"] = 10
     # CONFIG["run_name"] = "scratch_detection_test"
 
-    # Train model
+    # Train or Tune model
     results = train_scratch_detector(**CONFIG)
+
+    # Validate best model (튜닝 후에는 자동으로 최적의 모델을 검증)
+    print("\n🎯 Running final validation on best model...")
+    # 튜닝은 하위 폴더에 결과를 저장하므로 경로 수정이 필요할 수 있습니다.
+    # 우선은 그대로 두거나, 튜닝 후 출력되는 경로를 확인하여 수정하세요.
+    validate_model(f"{CONFIG['project_name']}/{CONFIG['run_name']}/weights/best.pt")
+
 
     # Validate best model
     print("\n🎯 Running final validation on best model...")
